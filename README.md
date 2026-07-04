@@ -48,7 +48,7 @@ MONGO_URI=mongodb+srv://<username>:<password>@<cluster>.mongodb.net/iot_database
 4. **Configurer le port Arduino**
 Modifier `server.js` ligne 38 :
 ```javascript
-const ARDUINO_PORT = 'COM3'; // Windows
+const ARDUINO_PORT = 'COM8'; // Windows
 // ou
 const ARDUINO_PORT = '/dev/ttyACM0'; // Linux/Mac
 ```
