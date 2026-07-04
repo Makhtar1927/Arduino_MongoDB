@@ -7,13 +7,18 @@ const SensorData = require('./models/Sensor');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Middlewares obligatoires
+// ==========================================
+// MIDDLEWARES DE L'APPLICATION
+// ==========================================
 app.use(cors());
 app.use(express.json());
 
-// Clé de protection minimale pour les requêtes POST provenant de l'ESP32
+// ==========================================
+// PROTECTION ET SÉCURITÉ DE L'API
+// ==========================================
 const API_KEY = process.env.API_KEY || "MonEsp32SecretKeyL3";
 
+// Middleware de validation pour les requêtes POST (écriture de l'ESP32)
 const requireApiKey = (req, res, next) => {
     const incomingKey = req.headers['x-api-key'];
     if (!incomingKey || incomingKey !== API_KEY) {
@@ -22,21 +27,35 @@ const requireApiKey = (req, res, next) => {
     next();
 };
 
-// Connexion à MongoDB Atlas (votre base 'iot_database')
+// ==========================================
+// CONNEXION À MONGOOSE (MongoDB Atlas)
+// ==========================================
 mongoose.connect(process.env.MONGO_URI)
     .then(() => console.log('Successfully connected to iot_database on MongoDB Atlas'))
     .catch(err => {
-        console.error('Erreur de connexion MongoDB:', err);
+        console.error('Erreur critique de connexion MongoDB:', err);
         process.exit(1);
     });
 
 // ==========================================
-// ROUTES REQUISES PAR LE BRIEF
+// ROUTES REQUISES PAR LE BRIEF DE L'ÉVALUATION
 // ==========================================
 
 /**
+ * 0. ROUTE D'ACCUEIL (Évite la 404 sur l'URL principale de Render)
+ */
+app.get('/', (req, res) => {
+    res.json({
+        status: "Running",
+        project: "Solution IoT avec ESP32, Node.js, MongoDB et Cloud",
+        level: "Licence 3 Informatique - CCAK",
+        databaseConnection: mongoose.connection.readyState === 1 ? "Connected to Atlas" : "Disconnected"
+    });
+});
+
+/**
  * 1. RECEVOIR ET ENREGISTRER UNE NOUVELLE MESURE (POST)
- * Appelée par l'ESP32 via Wi-Fi
+ * Sécurisée par clé d'API. Appelée à intervalles par l'ESP32 via Wi-Fi.
  */
 app.post('/api/measures', requireApiKey, async (req, res) => {
     try {
@@ -62,7 +81,7 @@ app.post('/api/measures', requireApiKey, async (req, res) => {
 
 /**
  * 2. CONSULTER LA DERNIÈRE MESURE (GET)
- * Pour l'affichage en temps réel sur le dashboard
+ * Indispensable pour l'affichage temps réel du Tableau de bord.
  */
 app.get('/api/measures/latest', async (req, res) => {
     try {
@@ -75,13 +94,25 @@ app.get('/api/measures/latest', async (req, res) => {
 });
 
 /**
- * 3. HISTORIQUE JOURNALIER PAR PÉRIODE (Matin, Soir, Nuit)
- * Récupère les données d'une date (ou aujourd'hui), calcule les moyennes et compte les alertes.
- * Plages définies : Matin (06h-18h), Soir (18h-00h), Nuit (00h-06h)
+ * 3. CONSULTER TOUTES LES MESURES (GET)
+ */
+app.get('/api/measures', async (req, res) => {
+    try {
+        const measures = await SensorData.find().sort({ createdAt: -1 }).limit(100);
+        return res.json(measures);
+    } catch (error) {
+        return res.status(500).json({ error: error.message });
+    }
+});
+
+/**
+ * 4. HISTORIQUE JOURNALIER PAR PÉRIODE (Matin, Soir, Nuit)
+ * Calcule les moyennes et compte les alertes par tranches horaires.
+ * Plages retenues : Matin (06h-18h), Soir (18h-00h), Nuit (00h-06h).
  */
 app.get('/api/history/daily', async (req, res) => {
     try {
-        const { date } = req.query; // Exemple: /api/history/daily?date=2026-06-28
+        const { date } = req.query; 
         const targetDate = date ? new Date(date) : new Date();
         
         const startOfDay = new Date(targetDate.setHours(0,0,0,0));
@@ -130,8 +161,8 @@ app.get('/api/history/daily', async (req, res) => {
 });
 
 /**
- * 4. HISTORIQUE HEBDOMADAIRE (7 derniers jours)
- * Fournit la moyenne journalière et le nombre d'alertes par jour
+ * 5. HISTORIQUE HEBDOMADAIRE (Sur les 7 derniers jours)
+ * Calcule la moyenne journalière brute et le nombre d'alertes par jour.
  */
 app.get('/api/history/weekly', async (req, res) => {
     try {
@@ -156,6 +187,9 @@ app.get('/api/history/weekly', async (req, res) => {
     }
 });
 
+// ==========================================
+// LANCEMENT DU SERVEUR
+// ==========================================
 app.listen(PORT, () => {
     console.log(`API IoT active et à l'écoute sur le port ${PORT}`);
 });
