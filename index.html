@@ -296,7 +296,7 @@ tbody td:not(:first-child){text-align:center}
 /* ── Period blocks (history) ── */
 .pblock{border:1px solid var(--border-lt);border-radius:var(--r4);overflow:hidden;transition:box-shadow var(--tf)}
 .pblock:hover{box-shadow:var(--sh2)}
-.phdr{display:flex;align-items:center;gap:.6rem;padding:.82rem 1rem;cursor:pointer;user-select:none;transition:background var(--tf)}
+.phdr{display:flex;align-items:center;gap:.6rem;padding:.82rem 1rem;cursor:pointer;-webkit-user-select:none;user-select:none;transition:background var(--tf)}
 .phdr:hover{background:var(--n-50)}
 .pstats{display:flex;gap:.55rem;margin-left:auto;flex-wrap:wrap;align-items:center}
 .pstat{display:inline-flex;align-items:center;gap:.26rem;font-size:.68rem;font-weight:600;color:var(--text2);background:var(--n-50);border:1px solid var(--border-lt);padding:.2rem .55rem;border-radius:var(--r2)}
@@ -559,7 +559,7 @@ tbody td:not(:first-child){text-align:center}
       </div>
       <div class="ctrl-row">
         <span class="ctrl-lbl"><i data-lucide="calendar-range" width="11" height="11"></i> Semaine</span>
-        <input type="week" id="week-picker" class="ctrl-inp">
+        <input type="week" id="week-picker" class="ctrl-inp" title="Sélectionner une semaine" aria-label="Semaine à afficher">
         <button id="week-reset" class="btn btn-sm btn-ghost">
           <i data-lucide="rotate-ccw" width="11" height="11"></i> Courante
         </button>
