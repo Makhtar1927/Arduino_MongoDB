@@ -1,21 +1,26 @@
 {
-  "name": "mongo_projet",
+  "name": "mongo-projet-api-iot",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "API Node.js et MongoDB Atlas pour la surveillance environnementale IoT avec ESP32 - Licence 3",
+  "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node server.js",
+    "dev": "node --watch server.js"
   },
-  "keywords": [],
+  "keywords": [
+    "iot",
+    "cloud-computing",
+    "esp32",
+    "mongodb",
+    "express",
+    "api"
+  ],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
   "dependencies": {
-    "@serialport/parser-readline": "^13.0.0",
-    "cors": "^2.8.6",
-    "dotenv": "^17.4.2",
-    "express": "^5.2.1",
-    "mongoose": "^9.7.3",
-    "serialport": "^13.0.0"
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "mongoose": "^8.4.3"
   }
 }
