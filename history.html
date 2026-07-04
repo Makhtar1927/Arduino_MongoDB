@@ -80,8 +80,8 @@ main{padding:1.5rem 0 2.5rem}
 .navbar{
   position:sticky;top:0;z-index:100;height:62px;
   background:rgba(255,255,255,.88);
-  backdrop-filter:blur(20px) saturate(160%);
   -webkit-backdrop-filter:blur(20px) saturate(160%);
+  backdrop-filter:blur(20px) saturate(160%);
   border-bottom:1px solid rgba(226,232,240,.85);
   box-shadow:0 1px 0 0 rgba(0,0,0,.04),0 2px 8px -2px rgba(0,0,0,.04);
 }
@@ -296,7 +296,7 @@ tbody td:not(:first-child){text-align:center}
 /* ── Period blocks (history) ── */
 .pblock{border:1px solid var(--border-lt);border-radius:var(--r4);overflow:hidden;transition:box-shadow var(--tf)}
 .pblock:hover{box-shadow:var(--sh2)}
-.phdr{display:flex;align-items:center;gap:.6rem;padding:.82rem 1rem;cursor:pointer;user-select:none;transition:background var(--tf)}
+.phdr{display:flex;align-items:center;gap:.6rem;padding:.82rem 1rem;cursor:pointer;-webkit-user-select:none;user-select:none;transition:background var(--tf)}
 .phdr:hover{background:var(--n-50)}
 .pstats{display:flex;gap:.55rem;margin-left:auto;flex-wrap:wrap;align-items:center}
 .pstat{display:inline-flex;align-items:center;gap:.26rem;font-size:.68rem;font-weight:600;color:var(--text2);background:var(--n-50);border:1px solid var(--border-lt);padding:.2rem .55rem;border-radius:var(--r2)}
@@ -348,7 +348,7 @@ tbody td:not(:first-child){text-align:center}
 <nav class="navbar">
   <div class="container nav-inner">
     <div style="display:flex;align-items:center;gap:.65rem">
-      <a href="index.html" class="nav-btn">
+      <a href="https://api-iot-l3-it-ucak.onrender.com/" class="nav-btn">
         <i data-lucide="arrow-left" width="13" height="13"></i>
         <span>Tableau de bord</span>
       </a>
@@ -436,7 +436,7 @@ tbody td:not(:first-child){text-align:center}
       <div class="sec-end">
         <div class="ctrl-row" style="margin-bottom:0">
           <span class="ctrl-lbl"><i data-lucide="calendar" width="11" height="11"></i> Date</span>
-          <input type="date" id="day-picker" class="ctrl-inp">
+          <input type="date" id="day-picker" class="ctrl-inp" title="Sélectionner une date à analyser" aria-label="Date à analyser">
           <button id="day-today" class="btn btn-sm btn-ghost">
             <i data-lucide="rotate-ccw" width="11" height="11"></i> Auj.
           </button>
@@ -528,7 +528,7 @@ tbody td:not(:first-child){text-align:center}
       </div>
       <div class="ctrl-row">
         <span class="ctrl-lbl"><i data-lucide="calendar-range" width="11" height="11"></i> Semaine</span>
-        <input type="week" id="week-picker" class="ctrl-inp">
+        <input type="week" id="week-picker" class="ctrl-inp" title="Sélectionner une semaine" aria-label="Semaine à afficher">
         <button id="week-reset" class="btn btn-sm btn-ghost">
           <i data-lucide="rotate-ccw" width="11" height="11"></i> Courante
         </button>
