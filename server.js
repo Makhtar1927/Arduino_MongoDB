@@ -7,132 +7,110 @@ const SensorData = require('./models/Sensor');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// ==========================================
-// MIDDLEWARES DE L'APPLICATION
-// ==========================================
 app.use(cors());
 app.use(express.json());
 
-// ==========================================
-// PROTECTION ET SÉCURITÉ DE L'API
-// ==========================================
 const API_KEY = process.env.API_KEY || "MonEsp32SecretKeyL3";
-
-// Middleware de validation pour les requêtes POST (écriture de l'ESP32)
 const requireApiKey = (req, res, next) => {
     const incomingKey = req.headers['x-api-key'];
     if (!incomingKey || incomingKey !== API_KEY) {
-        return res.status(401).json({ error: "Accès refusé. Clé API invalide ou absente." });
+        return res.status(401).json({ error: "Accès refusé. Clé API invalide." });
     }
     next();
 };
 
-// ==========================================
-// CONNEXION À MONGOOSE (MongoDB Atlas)
-// ==========================================
 mongoose.connect(process.env.MONGO_URI)
-    .then(() => console.log('Successfully connected to iot_database on MongoDB Atlas'))
-    .catch(err => {
-        console.error('Erreur critique de connexion MongoDB:', err);
-        process.exit(1);
-    });
+    .then(() => console.log('Connecté à MongoDB Atlas - Base de données IoT opérationnelle'))
+    .catch(err => { console.error('Erreur de connexion Atlas:', err); process.exit(1); });
 
 // ==========================================
-// ROUTES REQUISES PAR LE BRIEF DE L'ÉVALUATION
+// ROUTES COMPLÈTES (CONFORMITÉ SECTIONS 6 & 7)
 // ==========================================
 
-/**
- * 0. ROUTE D'ACCUEIL (Évite la 404 sur l'URL principale de Render)
- */
-app.get('/', (req, res) => {
-    res.json({
-        status: "Running",
-        project: "Solution IoT avec ESP32, Node.js, MongoDB et Cloud",
-        level: "Licence 3 Informatique - CCAK",
-        databaseConnection: mongoose.connection.readyState === 1 ? "Connected to Atlas" : "Disconnected"
-    });
-});
-
-/**
- * 1. RECEVOIR ET ENREGISTRER UNE NOUVELLE MESURE (POST)
- * Sécurisée par clé d'API. Appelée à intervalles par l'ESP32 via Wi-Fi.
- */
+// 1. Recevoir et enregistrer une mesure (POST)
 app.post('/api/measures', requireApiKey, async (req, res) => {
     try {
         const { light, thresholdValue, status, sensorId } = req.body;
-
-        if (light === undefined) {
-            return res.status(400).json({ error: "La valeur de luminosité (light) est requise." });
-        }
-
-        const newMeasure = new SensorData({
-            light,
-            thresholdValue,
-            status,
-            sensorId
-        });
-
+        const newMeasure = new SensorData({ light, thresholdValue, status, sensorId });
         const savedData = await newMeasure.save();
-        return res.status(201).json({ message: "Mesure enregistrée avec succès", data: savedData });
+        return res.status(201).json(savedData);
     } catch (error) {
-        return res.status(500).json({ error: "Erreur lors de l'enregistrement", details: error.message });
+        return res.status(400).json({ error: "Erreur d'enregistrement", details: error.message });
     }
 });
 
-/**
- * 2. CONSULTER LA DERNIÈRE MESURE (GET)
- * Indispensable pour l'affichage temps réel du Tableau de bord.
- */
+// 2. Consulter la dernière mesure (GET) - Pour le Temps Réel du Dashboard
 app.get('/api/measures/latest', async (req, res) => {
     try {
         const latest = await SensorData.findOne().sort({ createdAt: -1 });
-        if (!latest) return res.status(404).json({ error: "Aucune donnée disponible" });
+        if (!latest) return res.status(404).json({ error: "Aucune donnée" });
         return res.json(latest);
     } catch (error) {
         return res.status(500).json({ error: error.message });
     }
 });
 
-/**
- * 3. CONSULTER TOUTES LES MESURES (GET)
- */
+// 3. Consulter toutes les mesures avec Filtre par Date (GET) (Exigence 6.7)
+// Exemple: /api/measures?startDate=2026-07-01&endDate=2026-07-04
 app.get('/api/measures', async (req, res) => {
     try {
-        const measures = await SensorData.find().sort({ createdAt: -1 }).limit(100);
+        const { startDate, endDate } = req.query;
+        let query = {};
+        
+        if (startDate || endDate) {
+            query.createdAt = {};
+            if (startDate) query.createdAt.$gte = new Date(startDate);
+            if (endDate) query.createdAt.$lte = new Date(endDate);
+        }
+
+        const measures = await SensorData.find(query).sort({ createdAt: -1 }).limit(200);
         return res.json(measures);
     } catch (error) {
         return res.status(500).json({ error: error.message });
     }
 });
 
-/**
- * 4. HISTORIQUE JOURNALIER PAR PÉRIODE (Matin, Soir, Nuit)
- * Calcule les moyennes et compte les alertes par tranches horaires.
- * Plages retenues : Matin (06h-18h), Soir (18h-00h), Nuit (00h-06h).
- */
+// 4. Consulter uniquement les ALERTES (GET) (Exigence 6.5)
+app.get('/api/measures/alerts', async (req, res) => {
+    try {
+        const alerts = await SensorData.find({ status: 'ALERT' }).sort({ createdAt: -1 });
+        return res.json(alerts);
+    } catch (error) {
+        return res.status(500).json({ error: error.message });
+    }
+});
+
+// 5. Consulter uniquement les RETOURS À LA NORMALE (GET) (Exigence 6.6)
+app.get('/api/measures/normals', async (req, res) => {
+    try {
+        const normals = await SensorData.find({ status: 'RETURN_TO_NORMAL' }).sort({ createdAt: -1 });
+        return res.json(normals);
+    } catch (error) {
+        return res.status(500).json({ error: error.message });
+    }
+});
+
+// ==========================================
+// ENDPOINTS AGRÉGATIONS HISTORIQUES (SECTION 8)
+// ==========================================
+
+// 6. Historique Journalier par Période (Matin, Soir, Nuit)
 app.get('/api/history/daily', async (req, res) => {
     try {
-        const { date } = req.query; 
+        const { date } = req.query;
         const targetDate = date ? new Date(date) : new Date();
-        
         const startOfDay = new Date(targetDate.setHours(0,0,0,0));
         const endOfDay = new Date(targetDate.setHours(23,59,59,999));
 
         const dailyData = await SensorData.aggregate([
             { $match: { createdAt: { $gte: startOfDay, $lte: endOfDay } } },
-            {
-                $project: {
-                    light: 1,
-                    status: 1,
-                    hour: { $hour: "$createdAt" }
-                }
-            },
+            { $project: { light: 1, status: 1, hour: { $hour: { date: "$createdAt", timezone: "Africa/Dakar" } } } },
             {
                 $group: {
                     _id: null,
-                    morningMeasures: { $push: { $cond: [ { $and: [ { $gte: ["$hour", 6] }, { $lt: ["$hour", 18] } ] }, "$$ROOT", "$$REMOVE" ] } },
-                    eveningMeasures: { $push: { $cond: [ { $gte: ["$hour", 18] }, "$$ROOT", "$$REMOVE" ] } },
-                    nightMeasures: { $push: { $cond: [ { $lt: ["$hour", 6] }, "$$ROOT", "$$REMOVE" ] } }
+                    morningMeasures: { $push: { $cond: [{ $and: [{ $gte: ["$hour", 6] }, { $lt: ["$hour", 18] }] }, "$$ROOT", "$$REMOVE"] } },
+                    eveningMeasures: { $push: { $cond: [{ $and: [{ $gte: ["$hour", 18] }, { $lt: ["$hour", 24] }] }, "$$ROOT", "$$REMOVE"] } },
+                    nightMeasures: { $push: { $cond: [{ $and: [{ $gte: ["$hour", 0] }, { $lt: ["$hour", 6] }] }, "$$ROOT", "$$REMOVE"] } }
                 }
             },
             {
@@ -153,43 +131,60 @@ app.get('/api/history/daily', async (req, res) => {
                 }
             }
         ]);
-
         return res.json(dailyData[0] || { morning: { avgLight: 0, alertsCount: 0 }, evening: { avgLight: 0, alertsCount: 0 }, night: { avgLight: 0, alertsCount: 0 } });
-    } catch (error) {
-        return res.status(500).json({ error: error.message });
-    }
+    } catch (error) { return res.status(500).json({ error: error.message }); }
 });
 
-/**
- * 5. HISTORIQUE HEBDOMADAIRE (Sur les 7 derniers jours)
- * Calcule la moyenne journalière brute et le nombre d'alertes par jour.
- */
+// 7. Historique Hebdomadaire — sélection libre de semaine (Exigence 8.2)
+// Sans params → 7 derniers jours  |  Avec params → ?startDate=2026-06-30&endDate=2026-07-06
 app.get('/api/history/weekly', async (req, res) => {
     try {
-        const sevenDaysAgo = new Date();
-        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        let rangeStart, rangeEnd;
+
+        if (req.query.startDate && req.query.endDate) {
+            // L'utilisateur a choisi une semaine précise depuis le dashboard
+            rangeStart = new Date(req.query.startDate);
+            rangeEnd   = new Date(req.query.endDate);
+            rangeEnd.setHours(23, 59, 59, 999); // inclure toute la dernière journée
+        } else {
+            // Comportement par défaut : 7 derniers jours glissants
+            rangeEnd   = new Date();
+            rangeStart = new Date();
+            rangeStart.setDate(rangeStart.getDate() - 7);
+        }
 
         const weeklyData = await SensorData.aggregate([
-            { $match: { createdAt: { $gte: sevenDaysAgo } } },
+            { $match: { createdAt: { $gte: rangeStart, $lte: rangeEnd } } },
             {
                 $group: {
-                    _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+                    _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt", timezone: "Africa/Dakar" } },
                     avgLight: { $avg: "$light" },
                     alertsCount: { $sum: { $cond: [{ $eq: ["$status", "ALERT"] }, 1, 0] } }
                 }
             },
             { $sort: { _id: 1 } }
         ]);
-
         return res.json(weeklyData);
-    } catch (error) {
-        return res.status(500).json({ error: error.message });
-    }
+    } catch (error) { return res.status(500).json({ error: error.message }); }
 });
 
-// ==========================================
-// LANCEMENT DU SERVEUR
-// ==========================================
-app.listen(PORT, () => {
-    console.log(`API IoT active et à l'écoute sur le port ${PORT}`);
+// 8. Historique Mensuel (Exigence additionnelle Section 15)
+app.get('/api/history/monthly', async (req, res) => {
+    try {
+        const startOfYear = new Date(new Date().getFullYear(), 0, 1);
+        const monthlyData = await SensorData.aggregate([
+            { $match: { createdAt: { $gte: startOfYear } } },
+            {
+                $group: {
+                    _id: { $dateToString: { format: "%Y-%m", date: "$createdAt", timezone: "Africa/Dakar" } },
+                    avgLight: { $avg: "$light" },
+                    alertsCount: { $sum: { $cond: [{ $eq: ["$status", "ALERT"] }, 1, 0] } }
+                }
+            },
+            { $sort: { _id: 1 } }
+        ]);
+        return res.json(monthlyData);
+    } catch (error) { return res.status(500).json({ error: error.message }); }
 });
+
+app.listen(PORT, () => console.log(`Serveur validé sur le port ${PORT}`));

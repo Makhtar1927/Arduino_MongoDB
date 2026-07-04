@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Historiques détaillés et données temps réel — Projet IoT L3 CCAK">
+  <title>Historiques Détaillés · IoT CCAK</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  /* Brand */
+  --teal-3:#0d9488;--teal-4:#14b8a6;--teal-5:#2dd4bf;
+  --teal-bg:#f0fdfa;--teal-bdr:#99f6e4;
+  --blue-3:#2563eb;--blue-4:#3b82f6;
+  --blue-bg:#eff6ff;--blue-bdr:#bfdbfe;
+  --red-3:#dc2626;--red-4:#ef4444;
+  --red-bg:#fef2f2;--red-bdr:#fecaca;
+  --green-3:#16a34a;--green-4:#22c55e;
+  --green-bg:#f0fdf4;--green-bdr:#bbf7d0;
+  --amber-4:#f59e0b;--amber-bg:#fffbeb;--amber-bdr:#fde68a;
+  --violet-4:#8b5cf6;--violet-bg:#f5f3ff;--violet-bdr:#ddd6fe;
+  /* Neutral */
+  --n-900:#0f172a;--n-800:#1e293b;--n-700:#334155;
+  --n-600:#475569;--n-500:#64748b;--n-400:#94a3b8;
+  --n-300:#cbd5e1;--n-200:#e2e8f0;--n-150:#eef2f7;
+  --n-100:#f1f5f9;--n-50:#f8fafc;--white:#ffffff;
+  /* Semantic */
+  --bg:#eef2f7;--surface:var(--white);
+  --border:var(--n-200);--border-lt:#f0f4f8;
+  --text:var(--n-900);--text2:var(--n-600);--muted:var(--n-400);
+  /* Shadows */
+  --sh1:0 1px 2px rgb(0 0 0/.05);
+  --sh2:0 1px 3px rgb(0 0 0/.06),0 1px 2px -1px rgb(0 0 0/.06);
+  --sh3:0 4px 8px -2px rgb(0 0 0/.08),0 2px 4px -2px rgb(0 0 0/.05);
+  --sh4:0 12px 28px -6px rgb(0 0 0/.1),0 4px 8px -4px rgb(0 0 0/.06);
+  --sh5:0 24px 48px -12px rgb(0 0 0/.12),0 8px 16px -8px rgb(0 0 0/.06);
+  /* Radius */
+  --r1:6px;--r2:8px;--r3:12px;--r4:16px;--r5:20px;--r6:24px;--rpill:999px;
+  /* Transitions */
+  --ease:cubic-bezier(.16,1,.3,1);
+  --tf:150ms var(--ease);--tb:250ms var(--ease);--ts:400ms var(--ease);
+}
+html{font-family:'Inter',system-ui,-apple-system,sans-serif;scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);min-height:100svh;-webkit-font-smoothing:antialiased}
+[data-lucide]{display:inline-flex;align-items:center;justify-content:center}
+[data-lucide] svg{display:block}
+
+/* ── Animations ── */
+@keyframes fadeUp {from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn {from{opacity:0}to{opacity:1}}
+@keyframes pulse-ok {0%{box-shadow:0 0 0 0 rgba(34,197,94,.5)}70%{box-shadow:0 0 0 7px rgba(34,197,94,0)}100%{box-shadow:0 0 0 0 rgba(34,197,94,0)}}
+@keyframes pulse-err{0%{box-shadow:0 0 0 0 rgba(239,68,68,.5)}70%{box-shadow:0 0 0 7px rgba(239,68,68,0)}100%{box-shadow:0 0 0 0 rgba(239,68,68,0)}}
+@keyframes pulse-live{0%{box-shadow:0 0 0 0 rgba(239,68,68,.55)}70%{box-shadow:0 0 0 6px rgba(239,68,68,0)}100%{box-shadow:0 0 0 0 rgba(239,68,68,0)}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+@keyframes row-flash{0%{background:rgba(20,184,166,.13)}100%{background:transparent}}
+@keyframes spin{to{transform:rotate(360deg)}}
+.fu{animation:fadeUp .55s var(--ease) both}
+.fi{animation:fadeIn .35s var(--ease) both}
+.d1{animation-delay:.07s}.d2{animation-delay:.13s}.d3{animation-delay:.19s}
+.d4{animation-delay:.25s}.d5{animation-delay:.31s}.d6{animation-delay:.37s}
+
+/* ── Layout ── */
+.container{max-width:1280px;margin:0 auto;padding:0 1.1rem}
+@media(min-width:640px){.container{padding:0 1.5rem}}
+@media(min-width:1024px){.container{padding:0 2rem}}
+.stack{display:flex;flex-direction:column;gap:1.25rem}
+.kpi-grid{display:grid;gap:1.1rem;grid-template-columns:1fr}
+@media(min-width:600px){.kpi-grid{grid-template-columns:1fr 1fr}}
+@media(min-width:1024px){.kpi-grid{grid-template-columns:repeat(3,1fr)}}
+.split-grid{display:grid;gap:1.25rem;grid-template-columns:1fr}
+@media(min-width:1024px){.split-grid{grid-template-columns:1fr 1fr}}
+main{padding:1.5rem 0 2.5rem}
+
+/* ── Navbar ── */
+.navbar{
+  position:sticky;top:0;z-index:100;height:62px;
+  background:rgba(255,255,255,.88);
+  backdrop-filter:blur(20px) saturate(160%);
+  -webkit-backdrop-filter:blur(20px) saturate(160%);
+  border-bottom:1px solid rgba(226,232,240,.85);
+  box-shadow:0 1px 0 0 rgba(0,0,0,.04),0 2px 8px -2px rgba(0,0,0,.04);
+}
+.nav-inner{
+  height:100%;display:flex;align-items:center;
+  justify-content:space-between;gap:1rem;
+}
+.nav-brand{display:flex;align-items:center;gap:.7rem;text-decoration:none;flex-shrink:0}
+.nav-logo{
+  width:36px;height:36px;border-radius:10px;flex-shrink:0;
+  background:linear-gradient(135deg,var(--teal-4),var(--blue-4));
+  display:flex;align-items:center;justify-content:center;color:#fff;
+  box-shadow:0 2px 8px rgba(20,184,166,.28),0 1px 3px rgba(59,130,246,.15);
+}
+.nav-texts .nav-title{font-size:.88rem;font-weight:800;letter-spacing:-.022em;color:var(--text);line-height:1.1}
+.nav-texts .nav-sub  {font-size:.62rem;color:var(--muted);font-weight:500;margin-top:1px}
+.nav-right{display:flex;align-items:center;gap:.65rem}
+.nav-btn{
+  display:inline-flex;align-items:center;gap:.4rem;
+  color:var(--text2);font-size:.73rem;font-weight:700;
+  text-decoration:none;padding:.4rem .85rem;border-radius:var(--r2);
+  background:var(--n-100);border:1px solid var(--border);
+  transition:all var(--tf);white-space:nowrap;font-family:inherit;cursor:pointer;
+}
+.nav-btn:hover{background:var(--teal-bg);border-color:var(--teal-bdr);color:var(--teal-3)}
+.nav-btn.active{background:var(--teal-bg);border-color:var(--teal-bdr);color:var(--teal-3)}
+.conn-pill{
+  display:flex;align-items:center;gap:.42rem;
+  background:var(--n-50);border:1px solid var(--border);
+  border-radius:var(--rpill);padding:.33rem .8rem;
+  font-size:.68rem;font-weight:600;color:var(--text2);white-space:nowrap;
+}
+.conn-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;background:var(--amber-4);animation:blink 1.2s infinite}
+.conn-dot.ok {background:var(--green-4);animation:pulse-ok 2s infinite}
+.conn-dot.err{background:var(--red-4);  animation:pulse-err .8s infinite}
+@media(max-width:639px){.nav-sub,.nav-history-text,.conn-label{display:none}}
+
+/* ── Hero ── */
+.hero{
+  background:
+    radial-gradient(ellipse 700px 420px at 10% 70%,rgba(20,184,166,.07) 0%,transparent 70%),
+    radial-gradient(ellipse 500px 300px at 90% 20%,rgba(59,130,246,.05) 0%,transparent 65%),
+    var(--surface);
+  border-bottom:1px solid var(--border);
+  padding:1.75rem 0 1.5rem;
+}
+.hero-inner{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap}
+.live-badge{
+  display:inline-flex;align-items:center;gap:.42rem;
+  background:rgba(20,184,166,.1);border:1px solid rgba(20,184,166,.22);
+  color:var(--teal-3);font-size:.63rem;font-weight:800;
+  letter-spacing:.09em;text-transform:uppercase;padding:.26rem .72rem;
+  border-radius:var(--rpill);margin-bottom:.65rem;
+}
+.live-badge-dot{width:6px;height:6px;border-radius:50%;background:var(--teal-4);animation:pulse-ok 1.8s infinite;flex-shrink:0}
+.hero-h1{
+  font-size:clamp(1.45rem,2.8vw,2.1rem);font-weight:900;
+  letter-spacing:-.04em;line-height:1.08;margin-bottom:.38rem;
+  background:linear-gradient(140deg,var(--n-900) 30%,var(--teal-3) 110%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.hero-sub{font-size:.8rem;color:var(--muted);font-weight:500;line-height:1.5}
+.hero-chips{display:flex;gap:.45rem;flex-wrap:wrap;margin-top:.9rem}
+.chip{
+  display:inline-flex;align-items:center;gap:.32rem;
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--rpill);padding:.25rem .65rem;
+  font-size:.64rem;font-weight:600;color:var(--text2);
+}
+
+/* ── Card ── */
+.card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r5);box-shadow:var(--sh3);
+  overflow:hidden;position:relative;
+  transition:box-shadow var(--tb),transform var(--tb);
+}
+.card:hover{box-shadow:var(--sh4);transform:translateY(-1px)}
+/* Gradient top accent (3px) */
+.card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,var(--teal-5) 0%,var(--teal-3) 100%);
+  border-radius:var(--r5) var(--r5) 0 0;
+}
+.card.ab::before{background:linear-gradient(90deg,var(--blue-4),var(--blue-3))}
+.card.aa::before{background:linear-gradient(90deg,#fbbf24,var(--amber-4))}
+.card.ar::before{background:linear-gradient(90deg,#f87171,var(--red-3))}
+.card.ag::before{background:linear-gradient(90deg,#4ade80,var(--green-3))}
+.card.av::before{background:linear-gradient(90deg,#a78bfa,var(--violet-4))}
+/* State variants */
+.card.s-alert ::before{background:linear-gradient(90deg,#f87171,var(--red-3))}
+.card.s-normal::before{background:linear-gradient(90deg,#4ade80,var(--green-3))}
+.card.s-return::before{background:linear-gradient(90deg,var(--teal-5),var(--teal-3))}
+.card.s-check ::before{background:linear-gradient(90deg,#fbbf24,var(--amber-4))}
+
+.card-body{padding:1.25rem 1.35rem 1.45rem}
+@media(min-width:640px){.card-body{padding:1.4rem 1.6rem 1.6rem}}
+
+/* ── KPI Card ── */
+.kpi-card .card-body{display:flex;flex-direction:column;gap:.75rem;min-height:158px}
+.kpi-top{display:flex;align-items:flex-start;justify-content:space-between}
+.icon-badge{width:40px;height:40px;border-radius:var(--r3);flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.icon-badge.t{background:var(--teal-bg);color:var(--teal-3);border:1px solid var(--teal-bdr)}
+.icon-badge.b{background:var(--blue-bg);color:var(--blue-3);border:1px solid var(--blue-bdr)}
+.icon-badge.a{background:var(--amber-bg);color:var(--amber-4);border:1px solid var(--amber-bdr)}
+.icon-badge.r{background:var(--red-bg);color:var(--red-3);border:1px solid var(--red-bdr)}
+.icon-badge.g{background:var(--green-bg);color:var(--green-3);border:1px solid var(--green-bdr)}
+.kpi-ts{font-size:.65rem;color:var(--muted);font-weight:500;display:flex;align-items:center;gap:.28rem;flex-wrap:wrap}
+.kpi-lbl{font-size:.62rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.kpi-num{font-size:clamp(2rem,4vw,2.6rem);font-weight:900;letter-spacing:-.05em;line-height:1;color:var(--text)}
+.kpi-unit{font-size:.85rem;font-weight:500;color:var(--muted);margin-left:.22rem}
+.kpi-foot{font-size:.68rem;color:var(--muted);font-weight:500;display:flex;align-items:center;gap:.4rem;flex-wrap:wrap}
+/* LDR progress bar */
+.ldr-bar-track{height:5px;background:var(--n-150);border-radius:var(--rpill);overflow:hidden;margin-top:.1rem}
+.ldr-bar{height:100%;border-radius:var(--rpill);background:linear-gradient(90deg,var(--teal-5),var(--teal-3));width:0%;transition:width .9s var(--ease)}
+
+/* Status badge */
+.sbadge{display:inline-flex;align-items:center;gap:.45rem;padding:.42rem 1rem;border-radius:var(--rpill);font-size:.76rem;font-weight:800;letter-spacing:-.01em;transition:all var(--ts)}
+.sbadge.normal{background:var(--green-bg);color:var(--green-3);border:1px solid var(--green-bdr)}
+.sbadge.alert {background:var(--red-bg);  color:var(--red-3);  border:1px solid var(--red-bdr)}
+.sbadge.return{background:var(--teal-bg); color:var(--teal-3); border:1px solid var(--teal-bdr)}
+.sbadge.check {background:var(--amber-bg);color:#92400e;       border:1px solid var(--amber-bdr)}
+.sensor-tag{display:inline-flex;align-items:center;gap:.35rem;background:var(--n-100);border:1px solid var(--border);border-radius:var(--r2);padding:.28rem .62rem;font-size:.64rem;font-weight:700;color:var(--text2)}
+
+/* ── Section header ── */
+.sec-hdr{display:flex;align-items:center;gap:.65rem;padding-bottom:.9rem;margin-bottom:1.05rem;border-bottom:1px solid var(--border-lt)}
+.sec-ico{width:30px;height:30px;border-radius:var(--r2);flex-shrink:0;display:flex;align-items:center;justify-content:center;background:var(--teal-bg);color:var(--teal-3);border:1px solid var(--teal-bdr)}
+.sec-ico.b{background:var(--blue-bg);color:var(--blue-3);border-color:var(--blue-bdr)}
+.sec-ico.g{background:var(--green-bg);color:var(--green-3);border-color:var(--green-bdr)}
+.sec-ico.r{background:var(--red-bg);color:var(--red-3);border-color:var(--red-bdr)}
+.sec-ico.a{background:var(--amber-bg);color:var(--amber-4);border-color:var(--amber-bdr)}
+.sec-ico.v{background:var(--violet-bg);color:var(--violet-4);border-color:var(--violet-bdr)}
+.sec-title{font-size:.9rem;font-weight:800;letter-spacing:-.02em;color:var(--text)}
+.sec-sub{font-size:.67rem;color:var(--muted);font-weight:500;margin-top:1px}
+.sec-end{margin-left:auto;display:flex;align-items:center;gap:.6rem;flex-wrap:wrap}
+
+/* ── Buttons ── */
+.btn{display:inline-flex;align-items:center;gap:.38rem;border-radius:var(--r2);font-family:inherit;font-weight:700;cursor:pointer;transition:all var(--tf);white-space:nowrap;text-decoration:none;border:1px solid transparent}
+.btn-sm{font-size:.72rem;padding:.35rem .8rem}
+.btn-xs{font-size:.67rem;padding:.27rem .62rem}
+.btn-ghost{background:var(--teal-bg);color:var(--teal-3);border-color:var(--teal-bdr)}
+.btn-ghost:hover{background:var(--teal-bdr);border-color:var(--teal-4)}
+.btn-detail{background:var(--n-100);color:var(--text2);border-color:var(--border)}
+.btn-detail:hover{background:var(--teal-bg);border-color:var(--teal-bdr);color:var(--teal-3)}
+
+/* Controls (week/date picker) */
+.ctrl-row{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;margin-bottom:.95rem}
+.ctrl-lbl{font-size:.67rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;white-space:nowrap;display:flex;align-items:center;gap:.28rem}
+.ctrl-inp{
+  background:var(--n-50);border:1px solid var(--border);border-radius:var(--r2);
+  padding:.34rem .68rem;font-size:.8rem;font-weight:600;color:var(--text);
+  font-family:inherit;cursor:pointer;transition:border-color var(--tf),box-shadow var(--tf);
+}
+.ctrl-inp:focus{outline:none;border-color:var(--teal-4);box-shadow:0 0 0 3px rgba(20,184,166,.1)}
+
+/* ── Live badge ── */
+.live-pill{
+  display:inline-flex;align-items:center;gap:.38rem;
+  background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.18);
+  border-radius:var(--rpill);padding:.22rem .68rem;
+  font-size:.63rem;font-weight:800;color:#991b1b;
+  text-transform:uppercase;letter-spacing:.07em;white-space:nowrap;
+}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--red-4);animation:pulse-live 1.5s ease infinite;flex-shrink:0}
+
+/* ── Tables ── */
+.t-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:var(--r3);border:1px solid var(--border-lt)}
+.t-wrap.capped{max-height:430px;overflow-y:auto}
+table{width:100%;border-collapse:collapse}
+thead{position:sticky;top:0;z-index:5}
+thead th{
+  background:var(--n-50);padding:.55rem .85rem;
+  font-size:.61rem;font-weight:700;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--muted);
+  border-bottom:1px solid var(--border);white-space:nowrap;text-align:left;
+}
+thead th:not(:first-child){text-align:center}
+tbody tr{border-bottom:1px solid var(--border-lt);transition:background var(--tf)}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover td{background:var(--n-50)}
+tbody td{padding:.78rem .85rem;font-size:.79rem;color:var(--text2);vertical-align:middle}
+tbody td:not(:first-child){text-align:center}
+.row-new td{animation:row-flash 3.5s var(--ease) forwards}
+.row-alert td{background:rgba(239,68,68,.025)}
+.row-return td{background:rgba(20,184,166,.025)}
+.no-data{text-align:center!important;padding:2.5rem!important;color:var(--muted);font-size:.79rem;font-weight:500}
+.val-em{font-weight:800;color:var(--text)}
+
+/* Status chips */
+.st{display:inline-flex;align-items:center;gap:.26rem;padding:.18rem .58rem;border-radius:var(--rpill);font-size:.65rem;font-weight:700}
+.st.ok{background:var(--green-bg);color:var(--green-3);border:1px solid var(--green-bdr)}
+.st.al{background:var(--red-bg);  color:var(--red-3);  border:1px solid var(--red-bdr)}
+.st.rt{background:var(--teal-bg); color:var(--teal-3); border:1px solid var(--teal-bdr)}
+/* Alert pill */
+.ap{display:inline-flex;align-items:center;gap:.26rem;padding:.18rem .58rem;border-radius:var(--rpill);font-size:.66rem;font-weight:700}
+.ap.zero{background:var(--green-bg);color:var(--green-3);border:1px solid var(--green-bdr)}
+.ap.some{background:var(--red-bg);  color:var(--red-3);  border:1px solid var(--red-bdr)}
+/* Period icons */
+.pico{width:28px;height:28px;border-radius:var(--r2);flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.pico.mo{background:#fefce8;color:#ca8a04;border:1px solid #fef08a}
+.pico.ev{background:#eef2ff;color:#4f46e5;border:1px solid #c7d2fe}
+.pico.ni{background:#f5f3ff;color:#7c3aed;border:1px solid #ddd6fe}
+.prow{display:flex;align-items:center;gap:.55rem}
+.pname{font-weight:800;color:var(--text);font-size:.79rem}
+.phrs{font-size:.62rem;color:var(--muted);margin-top:1px}
+
+/* ── Charts ── */
+.chart-wrap{position:relative;width:100%;height:260px}
+.chart-wrap.h310{height:310px}
+.chart-wrap.h210{height:210px}
+
+/* ── Period blocks (history) ── */
+.pblock{border:1px solid var(--border-lt);border-radius:var(--r4);overflow:hidden;transition:box-shadow var(--tf)}
+.pblock:hover{box-shadow:var(--sh2)}
+.phdr{display:flex;align-items:center;gap:.6rem;padding:.82rem 1rem;cursor:pointer;user-select:none;transition:background var(--tf)}
+.phdr:hover{background:var(--n-50)}
+.pstats{display:flex;gap:.55rem;margin-left:auto;flex-wrap:wrap;align-items:center}
+.pstat{display:inline-flex;align-items:center;gap:.26rem;font-size:.68rem;font-weight:600;color:var(--text2);background:var(--n-50);border:1px solid var(--border-lt);padding:.2rem .55rem;border-radius:var(--r2)}
+.pstat.al{background:var(--red-bg);color:var(--red-3);border-color:var(--red-bdr)}
+.ptog{margin-left:.4rem;color:var(--muted);transition:transform .22s var(--ease);flex-shrink:0}
+.ptog.open{transform:rotate(180deg)}
+.pbody{border-top:1px solid var(--border-lt);display:none}
+.pbody.open{display:block}
+
+/* ── Filter buttons (history) ── */
+.fbar{display:flex;align-items:center;gap:.45rem;margin-bottom:.9rem;flex-wrap:wrap}
+.fbtn{display:inline-flex;align-items:center;gap:.32rem;border:1px solid var(--border);background:var(--n-100);border-radius:var(--rpill);padding:.28rem .72rem;font-size:.69rem;font-weight:700;color:var(--text2);cursor:pointer;font-family:inherit;transition:all var(--tf)}
+.fbtn:hover{background:var(--teal-bg);border-color:var(--teal-bdr);color:var(--teal-3)}
+.fbtn.on{background:var(--teal-4);border-color:var(--teal-3);color:#fff}
+.fbtn.on-r{background:var(--red-4);border-color:var(--red-3);color:#fff}
+.feed-meta{margin-left:auto;display:flex;align-items:center;gap:.5rem;font-size:.67rem;color:var(--muted);font-weight:500}
+
+/* ── Footer ── */
+.footer{border-top:1px solid var(--border);background:var(--surface);padding:1.1rem 0}
+.footer-inner{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap}
+.footer-txt{font-size:.68rem;color:var(--muted);font-weight:500;display:flex;align-items:center;gap:.38rem}
+.footer-chips{display:flex;gap:.38rem;flex-wrap:wrap}
+.fchip{display:inline-flex;align-items:center;gap:.28rem;background:var(--n-100);border:1px solid var(--border);border-radius:var(--rpill);padding:.2rem .58rem;font-size:.62rem;font-weight:600;color:var(--text2)}
+
+/* ── No-signal state ────────────────────────── */
+.conn-dot.offline{background:#94a3b8;animation:blink 2s infinite}
+.sbadge.offline{background:var(--n-100);color:var(--n-500);border:1px solid var(--n-300)}
+.card.s-offline::before{background:linear-gradient(90deg,#94a3b8,#64748b)!important}
+.kpi-num.offline{color:var(--muted)!important;font-size:1.4rem!important;font-weight:600!important}
+.ldr-bar.offline{background:var(--n-300)!important;transition:width .5s}
+.no-signal-row td{
+  background:rgba(148,163,184,.06)!important;
+  color:var(--muted)!important;
+  font-size:.76rem!important;font-weight:600!important;
+  text-align:center!important;padding:1.1rem!important;
+}
+.ns-banner{
+  display:flex;align-items:center;gap:.55rem;
+  background:rgba(148,163,184,.09);border:1px solid var(--n-200);
+  border-radius:var(--r3);padding:.6rem 1rem;
+  font-size:.75rem;font-weight:600;color:var(--n-500);
+  margin-bottom:.9rem;
+}
+</style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+  <div class="container nav-inner">
+    <div style="display:flex;align-items:center;gap:.65rem">
+      <a href="index.html" class="nav-btn">
+        <i data-lucide="arrow-left" width="13" height="13"></i>
+        <span>Tableau de bord</span>
+      </a>
+      <div class="nav-logo"><i data-lucide="database" width="16" height="16"></i></div>
+      <div class="nav-texts">
+        <div class="nav-title">Historiques &amp; Données Détaillées</div>
+        <div class="nav-sub">Projet IoT · Licence 3 Informatique · CCAK</div>
+      </div>
+    </div>
+    <div class="nav-right">
+      <div class="live-pill">
+        <span class="live-dot"></span>
+        LIVE &nbsp;·&nbsp; <span id="feed-time">--:--:--</span>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO (compact) -->
+<header class="hero">
+  <div class="container">
+    <div class="live-badge fi">
+      <span class="live-badge-dot"></span> Flux temps réel · 5 s
+    </div>
+    <h1 class="hero-h1">Historiques &amp; Données en Temps Réel</h1>
+    <p class="hero-sub">Toutes les mesures ESP32 · LDR · MongoDB Atlas · Render.com</p>
+  </div>
+</header>
+
+<!-- MAIN -->
+<main>
+<div class="container">
+<div class="stack">
+
+<!-- FLUX EN DIRECT -->
+<div class="card ar fu d1">
+  <div class="card-body">
+    <div class="sec-hdr">
+      <div class="sec-ico r"><i data-lucide="activity" width="15" height="15"></i></div>
+      <div>
+        <div class="sec-title">Flux en Direct — Mesures en Temps Réel</div>
+        <div class="sec-sub">Rafraîchissement toutes les 5 s · Nouvelles lignes animées</div>
+      </div>
+      <div class="sec-end">
+        <div class="feed-meta">
+          <i data-lucide="refresh-cw" width="10" height="10"></i>
+          MàJ : <span id="feed-updated">--:--:--</span>
+        </div>
+        <span style="font-size:.68rem;font-weight:700;color:var(--muted)" id="feed-count">--</span>
+      </div>
+    </div>
+    <!-- Filtres -->
+    <div class="fbar">
+      <button class="fbtn on" data-f="ALL"><i data-lucide="list" width="10" height="10"></i> Toutes</button>
+      <button class="fbtn" data-f="NORMAL"><i data-lucide="check-circle" width="10" height="10"></i> Normales</button>
+      <button class="fbtn" data-f="ALERT"><i data-lucide="alert-circle" width="10" height="10"></i> Alertes</button>
+      <button class="fbtn" data-f="RETURN_TO_NORMAL"><i data-lucide="corner-down-left" width="10" height="10"></i> Retours</button>
+    </div>
+    <div class="t-wrap capped">
+      <table>
+        <thead><tr>
+          <th>Date &amp; Heure</th>
+          <th>Luminosité LDR</th>
+          <th>Seuil</th>
+          <th>État</th>
+          <th>Équipement</th>
+        </tr></thead>
+        <tbody id="feed-body">
+          <tr><td colspan="5" class="no-data">Chargement du flux…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- DÉTAIL JOURNALIER -->
+<div class="card aa fu d2">
+  <div class="card-body">
+    <div class="sec-hdr">
+      <div class="sec-ico a"><i data-lucide="clock" width="15" height="15"></i></div>
+      <div>
+        <div class="sec-title">Détail Journalier par Période</div>
+        <div class="sec-sub">Toutes les mesures ventilées — Matin · Soir · Nuit</div>
+      </div>
+      <div class="sec-end">
+        <div class="ctrl-row" style="margin-bottom:0">
+          <span class="ctrl-lbl"><i data-lucide="calendar" width="11" height="11"></i> Date</span>
+          <input type="date" id="day-picker" class="ctrl-inp">
+          <button id="day-today" class="btn btn-sm btn-ghost">
+            <i data-lucide="rotate-ccw" width="11" height="11"></i> Auj.
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Matin -->
+    <div class="pblock" style="margin-bottom:.7rem">
+      <div class="phdr" onclick="toggleP('mo')">
+        <div class="pico mo"><i data-lucide="sunrise" width="13" height="13"></i></div>
+        <div><div class="pname">Matin</div><div class="phrs">06h00 – 18h00</div></div>
+        <div class="pstats">
+          <span class="pstat"><i data-lucide="list" width="9" height="9"></i> <span id="mo-count">--</span></span>
+          <span class="pstat"><i data-lucide="bar-chart-2" width="9" height="9"></i> Moy : <span id="mo-avg">--</span></span>
+          <span class="pstat al"><i data-lucide="bell" width="9" height="9"></i> <span id="mo-alerts">--</span></span>
+        </div>
+        <i data-lucide="chevron-down" width="15" height="15" class="ptog open" id="mo-tog"></i>
+      </div>
+      <div class="pbody open" id="mo-body-wrap">
+        <div class="t-wrap" style="max-height:260px">
+          <table>
+            <thead><tr><th>Heure</th><th>Luminosité</th><th>Seuil</th><th>État</th></tr></thead>
+            <tbody id="mo-body"><tr><td colspan="4" class="no-data">Sélectionner une date</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Soir -->
+    <div class="pblock" style="margin-bottom:.7rem">
+      <div class="phdr" onclick="toggleP('ev')">
+        <div class="pico ev"><i data-lucide="sunset" width="13" height="13"></i></div>
+        <div><div class="pname">Soir</div><div class="phrs">18h00 – 00h00</div></div>
+        <div class="pstats">
+          <span class="pstat"><i data-lucide="list" width="9" height="9"></i> <span id="ev-count">--</span></span>
+          <span class="pstat"><i data-lucide="bar-chart-2" width="9" height="9"></i> Moy : <span id="ev-avg">--</span></span>
+          <span class="pstat al"><i data-lucide="bell" width="9" height="9"></i> <span id="ev-alerts">--</span></span>
+        </div>
+        <i data-lucide="chevron-down" width="15" height="15" class="ptog open" id="ev-tog"></i>
+      </div>
+      <div class="pbody open" id="ev-body-wrap">
+        <div class="t-wrap" style="max-height:260px">
+          <table>
+            <thead><tr><th>Heure</th><th>Luminosité</th><th>Seuil</th><th>État</th></tr></thead>
+            <tbody id="ev-body"><tr><td colspan="4" class="no-data">Sélectionner une date</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Nuit -->
+    <div class="pblock">
+      <div class="phdr" onclick="toggleP('ni')">
+        <div class="pico ni"><i data-lucide="moon" width="13" height="13"></i></div>
+        <div><div class="pname">Nuit</div><div class="phrs">00h00 – 06h00</div></div>
+        <div class="pstats">
+          <span class="pstat"><i data-lucide="list" width="9" height="9"></i> <span id="ni-count">--</span></span>
+          <span class="pstat"><i data-lucide="bar-chart-2" width="9" height="9"></i> Moy : <span id="ni-avg">--</span></span>
+          <span class="pstat al"><i data-lucide="bell" width="9" height="9"></i> <span id="ni-alerts">--</span></span>
+        </div>
+        <i data-lucide="chevron-down" width="15" height="15" class="ptog open" id="ni-tog"></i>
+      </div>
+      <div class="pbody open" id="ni-body-wrap">
+        <div class="t-wrap" style="max-height:260px">
+          <table>
+            <thead><tr><th>Heure</th><th>Luminosité</th><th>Seuil</th><th>État</th></tr></thead>
+            <tbody id="ni-body"><tr><td colspan="4" class="no-data">Sélectionner une date</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- CHARTS ROW -->
+<div class="split-grid">
+
+  <!-- Hebdomadaire -->
+  <div class="card ab fu d3">
+    <div class="card-body">
+      <div class="sec-hdr">
+        <div class="sec-ico b"><i data-lucide="trending-up" width="15" height="15"></i></div>
+        <div>
+          <div class="sec-title">Évolution Hebdomadaire</div>
+          <div class="sec-sub">Luminosité moy. &amp; alertes par jour</div>
+        </div>
+      </div>
+      <div class="ctrl-row">
+        <span class="ctrl-lbl"><i data-lucide="calendar-range" width="11" height="11"></i> Semaine</span>
+        <input type="week" id="week-picker" class="ctrl-inp">
+        <button id="week-reset" class="btn btn-sm btn-ghost">
+          <i data-lucide="rotate-ccw" width="11" height="11"></i> Courante
+        </button>
+      </div>
+      <div class="chart-wrap h310"><canvas id="weeklyChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Mensuel -->
+  <div class="card ag fu d4">
+    <div class="card-body">
+      <div class="sec-hdr">
+        <div class="sec-ico g"><i data-lucide="calendar" width="15" height="15"></i></div>
+        <div>
+          <div class="sec-title">Historique Mensuel</div>
+          <div class="sec-sub">Luminosité moy. &amp; alertes — Année en cours</div>
+        </div>
+      </div>
+      <div class="chart-wrap h310"><canvas id="monthlyChart"></canvas></div>
+    </div>
+  </div>
+
+</div>
+
+</div><!-- /stack -->
+</div><!-- /container -->
+</main>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="container footer-inner">
+    <div class="footer-txt">
+      <i data-lucide="code" width="13" height="13" style="color:var(--teal-4)"></i>
+      Licence 3 Informatique · CCAK · 2025
+    </div>
+    <div class="footer-chips">
+      <span class="fchip"><i data-lucide="database"     width="11" height="11" style="color:#22c55e"></i>MongoDB</span>
+      <span class="fchip"><i data-lucide="zap"          width="11" height="11" style="color:#f59e0b"></i>Node.js</span>
+      <span class="fchip"><i data-lucide="cloud-upload" width="11" height="11" style="color:#3b82f6"></i>Render</span>
+      <span class="fchip"><i data-lucide="cpu"          width="11" height="11" style="color:#14b8a6"></i>ESP32</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+  lucide.createIcons();
+  const API='https://api-iot-l3-it-ucak.onrender.com';
+  let allFeedData=[], prevIds=new Set(), curFilter='ALL';
+  let weeklyChart=null, monthlyChart=null;
+  const g=id=>document.getElementById(id);
+  const fmtT=ds=>new Date(ds).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  const fmtDT=ds=>{const d=new Date(ds);return d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'2-digit'})+' '+fmtT(ds);};
+
+  function stHtml(s){
+    if(s==='ALERT')           return '<span class="st al">⚠ ALERTE</span>';
+    if(s==='RETURN_TO_NORMAL')return '<span class="st rt">↩ RETOUR</span>';
+    return '<span class="st ok">✓ NORMAL</span>';
+  }
+
+  /* ── Flux en direct (5 s) ── */
+  async function updateFeed(){
+    const STALE_FEED_MS = 60_000; // 60 s
+    try{
+      const res=await fetch(API+'/api/measures'); if(!res.ok) throw 0;
+      allFeedData=await res.json();
+
+      /* Vérifier si la dernière mesure est récente */
+      if(allFeedData.length){
+        const latestAge = Date.now() - new Date(allFeedData[0].createdAt).getTime();
+        if(latestAge > STALE_FEED_MS){
+          const secs=Math.round(latestAge/1000);
+          const label=secs<60?secs+'s':Math.round(secs/60)+' min';
+          g('feed-body').innerHTML='<tr class="no-signal-row"><td colspan="5" style="text-align:center;padding:1.5rem">' +
+            '<div class="ns-banner" style="justify-content:center">' +
+            '<i data-lucide="wifi-off" width="16" height="16"></i>' +
+            '&nbsp; Aucun signal ESP32 — Dernière mesure reçue il y a ' + label +
+            '</div></td></tr>';
+          lucide.createIcons();
+        } else {
+          renderFeed();
+        }
+      } else {
+        g('feed-body').innerHTML='<tr class="no-signal-row"><td colspan="5">' +
+          '<i data-lucide="wifi-off" width="13" height="13"></i>&nbsp;&nbsp;Aucune mesure disponible</td></tr>';
+        lucide.createIcons();
+      }
+
+      const t=new Date().toLocaleTimeString('fr-FR');
+      g('feed-updated').innerText=t; g('feed-time').innerText=t;
+    }catch{
+      g('feed-body').innerHTML='<tr class="no-signal-row"><td colspan="5" style="text-align:center;padding:1.5rem">' +
+        '<div class="ns-banner" style="justify-content:center">' +
+        '<i data-lucide="wifi-off" width="16" height="16"></i>' +
+        '&nbsp; API inaccessible — Connexion impossible avec Render.com' +
+        '</div></td></tr>';
+      lucide.createIcons();
+      const t=new Date().toLocaleTimeString('fr-FR');
+      if(g('feed-updated')) g('feed-updated').innerText=t;
+      if(g('feed-time')) g('feed-time').innerText=t;
+    }
+  }
+  function renderFeed(){
+    const data=curFilter==='ALL'?allFeedData:allFeedData.filter(d=>d.status===curFilter);
+    const newIds=new Set(data.map(d=>d._id));
+    if(!data.length){
+      g('feed-body').innerHTML='<tr><td colspan="5" class="no-data">Aucune mesure pour ce filtre</td></tr>';
+      g('feed-count').innerText='0 mesure';
+      prevIds=newIds; return;
+    }
+    g('feed-body').innerHTML=data.slice(0,150).map(r=>{
+      const isNew=!prevIds.has(r._id);
+      const rc=r.status==='ALERT'?'row-alert':r.status==='RETURN_TO_NORMAL'?'row-return':'';
+      return '<tr class="'+(isNew?'row-new ':'')+rc+'">'+
+        '<td style="font-size:.74rem;white-space:nowrap">'+fmtDT(r.createdAt)+'</td>'+
+        '<td><strong>'+r.light+'</strong></td>'+
+        '<td style="color:var(--muted)">'+(r.thresholdValue??'--')+'</td>'+
+        '<td>'+stHtml(r.status)+'</td>'+
+        '<td style="color:var(--muted);font-size:.68rem">'+(r.sensorId??'--')+'</td></tr>';
+    }).join('');
+    g('feed-count').innerText=data.length+' mesure'+(data.length>1?'s':'');
+    prevIds=newIds;
+  }
+  document.querySelectorAll('.fbtn').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      document.querySelectorAll('.fbtn').forEach(b=>b.classList.remove('on','on-r'));
+      btn.classList.add(btn.dataset.f==='ALERT'?'on-r':'on');
+      curFilter=btn.dataset.f; renderFeed();
+    });
+  });
+
+  /* ── Détail journalier ── */
+  async function loadDay(){
+    const ds=g('day-picker').value; if(!ds) return;
+    try{
+      const url=API+'/api/measures?startDate='+encodeURIComponent(ds+'T00:00:00.000Z')+'&endDate='+encodeURIComponent(ds+'T23:59:59.999Z');
+      const res=await fetch(url); if(!res.ok) throw 0;
+      const data=await res.json();
+      const byP={mo:[],ev:[],ni:[]};
+      data.forEach(m=>{const h=new Date(m.createdAt).getHours();
+        if(h>=6&&h<18) byP.mo.push(m); else if(h>=18) byP.ev.push(m); else byP.ni.push(m);});
+      renderPeriod('mo',byP.mo);renderPeriod('ev',byP.ev);renderPeriod('ni',byP.ni);
+    }catch{['mo','ev','ni'].forEach(p=>{g(p+'-count').innerText='--';g(p+'-avg').innerText='--';g(p+'-alerts').innerText='--';g(p+'-body').innerHTML='<tr><td colspan="4" class="no-data">Erreur</td></tr>';});}
+  }
+  function renderPeriod(pfx,data){
+    const n=data.length;
+    const avg=n?Math.round(data.reduce((s,m)=>s+m.light,0)/n):'—';
+    const alts=data.filter(m=>m.status==='ALERT').length;
+    g(pfx+'-count').innerText=n;g(pfx+'-avg').innerText=avg;g(pfx+'-alerts').innerText=alts;
+    if(!n){g(pfx+'-body').innerHTML='<tr><td colspan="4" class="no-data">Aucune mesure</td></tr>';return;}
+    g(pfx+'-body').innerHTML=data.map(m=>{
+      const cls=m.status==='ALERT'?'row-alert':m.status==='RETURN_TO_NORMAL'?'row-return':'';
+      return '<tr class="'+cls+'"><td style="white-space:nowrap">'+fmtT(m.createdAt)+'</td>'+
+        '<td><strong>'+m.light+'</strong></td><td style="color:var(--muted)">'+(m.thresholdValue??'--')+'</td>'+
+        '<td>'+stHtml(m.status)+'</td></tr>';
+    }).join('');
+  }
+  function toggleP(pfx){
+    const b=g(pfx+'-body-wrap'),t=g(pfx+'-tog');
+    b.classList.toggle('open');t.classList.toggle('open');
+  }
+  const dp=g('day-picker');
+  dp.value=new Date().toISOString().slice(0,10);
+  dp.addEventListener('change',loadDay);
+  g('day-today').addEventListener('click',()=>{dp.value=new Date().toISOString().slice(0,10);loadDay();});
+
+  
+  function getISOWeek(){
+    const n=new Date(); const t=new Date(Date.UTC(n.getFullYear(),n.getMonth(),n.getDate()));
+    t.setUTCDate(t.getUTCDate()+4-(t.getUTCDay()||7));
+    const y1=new Date(Date.UTC(t.getUTCFullYear(),0,1));
+    const wk=Math.ceil((((t-y1)/86400000)+1)/7);
+    return t.getUTCFullYear()+'-W'+String(wk).padStart(2,'0');
+  }
+  function weekRange(val){
+    const[yr,wStr]=val.split('-W'); const year=parseInt(yr),week=parseInt(wStr);
+    const jan4=new Date(Date.UTC(year,0,4)); const dow=jan4.getUTCDay()||7;
+    const w1=new Date(jan4); w1.setUTCDate(jan4.getUTCDate()-dow+1);
+    const s=new Date(w1); s.setUTCDate(w1.getUTCDate()+(week-1)*7);
+    const e=new Date(s); e.setUTCDate(s.getUTCDate()+6);
+    return{start:s.toISOString().slice(0,10),end:e.toISOString().slice(0,10)};
+  }
+  function initWeekPicker(id, resetId) {
+    const p=g(id); p.value=getISOWeek();
+    p.addEventListener('change',()=>{const{start,end}=weekRange(p.value);fetchWeekly(start,end);});
+    g(resetId).addEventListener('click',()=>{p.value=getISOWeek();fetchWeekly();});
+  }
+  
+  async function fetchWeekly(start, end) {
+    try {
+      let url = API + '/api/history/weekly';
+      if (start && end) url += '?startDate=' + start + '&endDate=' + end;
+      const res = await fetch(url);
+      if (!res.ok) return;
+      const data = await res.json();
+      const ctx = g('weeklyChart').getContext('2d');
+      if (weeklyChart) weeklyChart.destroy();
+      const grad = ctx.createLinearGradient(0, 0, 0, 310);
+      grad.addColorStop(0,   'rgba(13,148,136,.28)');
+      grad.addColorStop(0.6, 'rgba(13,148,136,.06)');
+      grad.addColorStop(1,   'rgba(13,148,136,0)');
+      const labels = data.map(d => {
+        const dt = new Date(d._id + 'T12:00:00');
+        return dt.toLocaleDateString('fr-FR', { weekday:'short', day:'numeric', month:'short' });
+      });
+      const barBg  = data.map(d => d.alertsCount > 0 ? 'rgba(239,68,68,.22)' : 'rgba(34,197,94,.15)');
+      const barBdr = data.map(d => d.alertsCount > 0 ? '#ef4444' : '#22c55e');
+      weeklyChart = new Chart(ctx, {
+        data: {
+          labels,
+          datasets: [
+            { type:'line', label:'Luminosité moyenne', order:2,
+              data:data.map(d=>Math.round(d.avgLight)),
+              borderColor:'#0d9488', backgroundColor:grad,
+              borderWidth:3, tension:0.42, fill:true,
+              pointBackgroundColor:'#0d9488', pointBorderColor:'#fff',
+              pointBorderWidth:2.5, pointRadius:5, pointHoverRadius:9,
+              pointHoverBorderColor:'#0d9488', pointHoverBorderWidth:3, yAxisID:'y' },
+            { type:'bar', label:"Alertes", order:3,
+              data:data.map(d=>d.alertsCount),
+              backgroundColor:barBg, borderColor:barBdr,
+              borderWidth:1.5, borderRadius:7, borderSkipped:false, yAxisID:'y1' },
+            { type:'line', label:'Seuil critique (300)', order:1,
+              data:data.map(()=>300),
+              borderColor:'rgba(239,68,68,.52)', borderDash:[6,4],
+              borderWidth:1.5, pointRadius:0, pointHoverRadius:0,
+              fill:false, yAxisID:'y' }
+          ]
+        },
+        options: {
+          responsive:true, maintainAspectRatio:false,
+          interaction:{ mode:'index', intersect:false },
+          animation:{ duration:950, easing:'easeInOutCubic' },
+          scales:{
+            x:{ grid:{color:'#f1f5f9'}, ticks:{color:'#94a3b8',font:{size:11}}, border:{color:'#e2e8f0'} },
+            y:{ position:'left', title:{display:true,text:'Luminosité LDR (0-4095)',color:'#94a3b8',font:{size:11}},
+                grid:{color:'#f1f5f9'}, ticks:{color:'#94a3b8',font:{size:11}}, min:0 },
+            y1:{ position:'right', title:{display:true,text:'Alertes',color:'#94a3b8',font:{size:11}},
+                 grid:{drawOnChartArea:false}, ticks:{color:'#94a3b8',stepSize:1,font:{size:11}}, min:0 }
+          },
+          plugins:{
+            legend:{ labels:{color:'#475569',font:{size:12,weight:'600'},usePointStyle:true,padding:18} },
+            tooltip:{
+              backgroundColor:'rgba(255,255,255,.97)', titleColor:'#0f172a',
+              bodyColor:'#475569', borderColor:'#e2e8f0', borderWidth:1,
+              padding:14, cornerRadius:12,
+              callbacks:{
+                title:items=>{
+                  if(!items.length) return '';
+                  const raw=(data[items[0].dataIndex]&&data[items[0].dataIndex]._id)||'';
+                  try{ return new Date(raw+'T12:00:00').toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'}); }
+                  catch{ return raw; }
+                },
+                label:item=>{
+                  if(item.datasetIndex===0) return '  Luminosité moy. : '+item.formattedValue+' / 4095';
+                  if(item.datasetIndex===1) return "  Alertes : "+item.formattedValue;
+                  return '  Seuil critique : '+item.formattedValue;
+                },
+                labelColor:item=>{
+                  const c=['#0d9488','#ef4444','rgba(239,68,68,.5)'][item.datasetIndex]||'#94a3b8';
+                  return{borderColor:c,backgroundColor:c,borderRadius:4};
+                }
+              }
+            }
+          }
+        }
+      });
+    } catch(e){console.error(e);}
+  }
+  
+  async function fetchMonthly() {
+    try {
+      const res = await fetch(API + '/api/history/monthly');
+      if (!res.ok) return;
+      const data = await res.json();
+      const labels = data.map(d => {
+        const [y,m] = d._id.split('-');
+        return new Date(parseInt(y),parseInt(m)-1).toLocaleDateString('fr-FR',{month:'short',year:'2-digit'});
+      });
+      const ctx = g('monthlyChart').getContext('2d');
+      if (monthlyChart) monthlyChart.destroy();
+      monthlyChart = new Chart(ctx, {
+        type:'bar',
+        data:{ labels, datasets:[
+          { label:'Luminosité moy.', data:data.map(d=>Math.round(d.avgLight)),
+            backgroundColor:'rgba(13,148,136,.16)', borderColor:'#0d9488',
+            borderWidth:1.5, borderRadius:7, yAxisID:'y' },
+          { label:'Alertes / mois', data:data.map(d=>d.alertsCount),
+            backgroundColor:'rgba(239,68,68,.18)', borderColor:'#ef4444',
+            borderWidth:1.5, borderRadius:7, yAxisID:'y1' }
+        ]},
+        options:{
+          responsive:true, maintainAspectRatio:false,
+          interaction:{mode:'index',intersect:false},
+          animation:{duration:900,easing:'easeInOutCubic'},
+          scales:{
+            x:{grid:{color:'#f1f5f9'},ticks:{color:'#94a3b8',font:{size:11}},border:{color:'#e2e8f0'}},
+            y:{position:'left',title:{display:true,text:'Luminosité LDR',color:'#94a3b8',font:{size:11}},grid:{color:'#f1f5f9'},ticks:{color:'#94a3b8',font:{size:11}},min:0},
+            y1:{position:'right',title:{display:true,text:'Alertes',color:'#94a3b8',font:{size:11}},grid:{drawOnChartArea:false},ticks:{color:'#94a3b8',stepSize:1,font:{size:11}},min:0}
+          },
+          plugins:{
+            legend:{labels:{color:'#475569',font:{size:12,weight:'600'},usePointStyle:true,padding:18}},
+            tooltip:{backgroundColor:'rgba(255,255,255,.97)',titleColor:'#0f172a',bodyColor:'#475569',borderColor:'#e2e8f0',borderWidth:1,padding:14,cornerRadius:12}
+          }
+        }
+      });
+    } catch(e){console.error(e);}
+  }
+
+  updateFeed(); loadDay(); fetchWeekly(); fetchMonthly();
+  initWeekPicker('week-picker','week-reset');
+  setInterval(updateFeed,   5_000);
+  setInterval(loadDay,     30_000);
+  setInterval(fetchMonthly,60_000);
+</script>
+</body>
+</html>
