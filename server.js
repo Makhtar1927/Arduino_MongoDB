@@ -187,4 +187,21 @@ app.get('/api/history/monthly', async (req, res) => {
     } catch (error) { return res.status(500).json({ error: error.message }); }
 });
 
-app.listen(PORT, () => console.log(`Serveur validé sur le port ${PORT}`));
+// ==========================================
+// DASHBOARD — Fichiers HTML statiques
+// Accès : https://api-iot-l3-it-ucak.onrender.com/
+//         https://api-iot-l3-it-ucak.onrender.com/history
+// ==========================================
+const path = require('path');
+
+app.get('/', (req, res) =>
+    res.sendFile(path.join(__dirname, 'index.html'))
+);
+app.get('/history', (req, res) =>
+    res.sendFile(path.join(__dirname, 'history.html'))
+);
+app.get('/history.html', (req, res) =>
+    res.sendFile(path.join(__dirname, 'history.html'))
+);
+
+app.listen(PORT, () => console.log(`Serveur validé sur le port ${PORT}`));
